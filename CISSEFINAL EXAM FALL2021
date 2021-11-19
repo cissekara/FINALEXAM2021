@@ -1,0 +1,211 @@
+---
+title: "FINALEXAMECONOMETRIS"
+author: "CISSE SERIGNE CHEIKH MODOU KARA"
+date: "11/18/2021"
+output: html_document
+#For this exam we will use a new (to you) dataset, an update of NHIS. We’ll look at estimates of whether people worked for an employer that offered health insurance, EMPHI. The data is available on Slack. (Note that in data, NIU is “Not in Universe” so for instance if people are asked if their employer offers health insurance then somebody not working would be NIU.)
+> load("~/NHIS2020_data.RData")
+CISSE, SERIGNE CHEIKH MODOU KARA
+#################HOMEWORK 3##############################
+attach(data_NHIS)
+summary(data_NHIS)
+#Now do your own analysis using “NHIS2020_data.RData”. 
+#Explore likelihood of people working at a job that offers health insurance, or choose a different topic if you’d like.
+length(data_NHIS)
+list(data_NHIS)
+summary(data_NHIS$EMPHI)
+#  NIU = 19978 
+# no workplace did not offer health insurance = 4886 
+# yes workplace offer health insurance  = 12404 
+# refused  = 19 
+# don't know = 47
+# NA = 24
+#
+#In this whole population sample, we have 12404 respondents are currently at workplaces offering HealthInsurance, 
+
+
+#Another safe method#
+#Let's create a variable for peoples who worked at  the workplaces offering Health Insurance AND CALL WORKHI
+WORKHI<- (data_NHIS$EMPHI == "yes workplace offer health insurance")
+summary(WORKHI)
+#  Mode   FALSE    TRUE 
+#logical   24954   12404
+
+#Now let's create a variable for peoples who are working at workplace did not offer health insurance NOHIATWORK
+NOHIATWORK <- data_NHIS$EMPHI =="no workplace did not offer health insurance"
+summary(NOHIATWORK)
+#   Mode   FALSE    TRUE 
+# logical   32472    4886  WE HAVE 4886 PARTICIPANTS
+
+
+#let's create a variable for peoples who are NOT working at workplace did not offer health insurance: NUIWORK
+ NIUWORK<- data_NHIS$EMPHI=="NIU"
+summary(NIUWORK)
+#   Mode   FALSE    TRUE 
+#logical   17380   19978 WE HAVE 19978 PARTICIPANTS
+
+
+is.na(data_NHIS$EMPHI) <- which(data_NHIS$WORKHI == "NA") 
+summary(as.numeric(data_NHIS$WORKHI))
+#   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+#  0.000   0.000   0.000   0.332   1.000   1.000 
+#Roughly 33.2% per cent of participants are receving Health insurance coverage from their workplaces
+table(data_NHIS$WORKHI)
+#FALSE  TRUE 
+#24954 12404 
+
+table(data_NHIS$ARMEDFORCES)
+# NIU                     No never active duty        active only for training 
+# 5790                           27442                             544 
+# yes ever served in armed forces      #refused                              NA 
+# 2629                                     20                               931 
+# dont know 
+#  2 
+
+table(data_NHIS$WORKHI,data_NHIS$ARMEDFORCES)
+
+#       NIU    #No never active duty                  #active only for training          #yes ever served in armed forces
+#FALSE  5790                15952                      381                              1879
+#TRUE      0                11490                      163                                750
+
+#       refused          #NA                        #dont know
+#FALSE      19          931                             2
+#TRUE        1          0                              0
+#15952 were not expected to  undergo active duty training but actually did not: true negatives
+#1879 were expected to be part of Active Duty forces and 750 are actually are in the forces
+
+#            yes   no
+# FALSE  24529 218163   (218163 PEOPLES WITH VETERAN STATUS HAVE RESPONDED TO HAVE RECEIVED FLUSHOT BUT DID NOT)
+# TRUE   32300 175950   (32300 WERE NOT EXPECTED TO BE VACCINATED BUT ACTUALLY DID.) 
+###   (175950 ARE THE CORRECT ONES TOO BE EXPECTED HAVING RECEIVED THE SHOT AND ACTUALLY DID. THEY ARE CALLED TRUE POSITIVES). 
+###    (24529 VETERANS WERE NOT EXPECTED  HAVING TAKEN THE FLU SHOT AND ACTUALLY DID NOT: TRUE NEGATIVES
+
+
+summary(data_NHIS$ARMEDFORCES)
+#ASSUMING NOT ALL US CITIZEN WILL SERVE IN THE ARMED FORCES. AND SOMETIMES THE GOVERNMENT HAS AUTHORIZED NONIMMIGRANT TO JOIN THE ARMED FORCES TO ONLY FIGHT WARS. GREEN CARD HOLDERS ARE ALSO AUTJHORIZED TO JOIN THE ARMED FORCES
+#dO gREEN cARDS HOLDERS AND NON IMMIGRANT JOIN THE ARMED FORCES TO ACQUIRE THE US CITTIZENSHIP ONLY NAD HEALTH INSURANCE? LETS FIGURE IT OUT. 
+#let's create a subset of peoples and SEERRVICEMEBERS who ARE ACTIVELY WORKING AND have heath insurance at their workplaces
+pick_use1 <- (data_NHIS$ARMEDFORCES== "yes ever served in armed forces") #this sample for servicemembers who have been covered by health insurance
+summary(pick_use1)
+dat_use1 <- subset(data_NHIS, pick_use1)
+summary(dat_use1)
+length(dat_use1)
+list(dat_use1)
+require(standardize)
+
+#We set COVERED HEALTH INSURANCE AT WORKPLACE (WORKHI) as dependent variable.  
+#iNDEPENDENT VARIABLES CAN BE health status, height, weight and BMI, along with demographics like age, race/ethnicity, gender, sexual orientation, family size, marital status, whether served in armed forces, citizenship with years in US, and household income.
+to_be_predicted<- data.frame(INCOME2= "Less than $50,000 ($35,000 to less than $50,000) ",    data = dat_use1)
+to_be_predicted$yhat<-predict(model_logit2, to_be_predicted, type="response")
+summary(to_be_predicted$yhat)
+
+
+
+summary(dat_use1$FAMSIZE)
+summary(dat_use1$RACEA)
+summary(dat_use1$CITIZEN)
+summary(dat_use1$EDUC)
+
+
+
+SVMBERHI <-lm(WORKHI~ AGE + FAMSIZE + RACEA + CITIZEN + EDUC, data = dat_use1)
+summary(SVMBERHI)
+> summary(SVMBERHI)
+
+Call:
+  lm(formula = WORKHI ~ AGE + FAMSIZE + RACEA + CITIZEN + EDUC, 
+     data = dat_use1)
+
+Residuals:
+#  Min      1Q  Median      3Q     Max 
+#-1.5651 -0.2813 -0.1904  0.4345  1.9990 
+
+#Coefficients:
+#  Estimate Std. Error t value Pr(>|t|)    
+# (Intercept)                   1.1668285  0.4473707   2.608 0.009154 ** 
+#  AGE                          -0.0023976  0.0002234 -10.732  < 2e-16 ***
+#  FAMSIZE                       0.0939491  0.0084848  11.073  < 2e-16 ***
+#  RACEABlack                    0.0869194  0.0270692   3.211 0.001339 ** 
+#  RACEAAleut Alaskan           -0.0898853  0.0874839  -1.027 0.304305    
+# RACEAAmerican Indian          0.0940279  0.0822514   1.143 0.253071    
+# RACEAAsian                    0.0643586  0.0758094   0.849 0.395985    
+# RACEAOther                    0.0090617  0.0978878   0.093 0.926251    
+# RACEArefused                  1.3635721  0.3162469   4.312 1.68e-05 ***
+#   RACEAnot ascertained          0.2193878  0.0652065   3.365 0.000778 ***
+#  CITIZENyes US citizen        -0.2204604  0.1422210  -1.550 0.121233    
+# CITIZENrefused               -0.5492059  0.3331381  -1.649 0.099354 .  
+# CITIZENNA                    -0.5517155  0.4476671  -1.232 0.217903    
+# CITIZENdont know              0.4728438  0.3315919   1.426 0.153994    
+# EDUCless than hs             -0.8495194  0.4268625  -1.990 0.046679 *  
+#  EDUC12th grade no diploma    -0.8489976  0.4315875  -1.967 0.049272 *  
+#  EDUCHS diploma               -0.7429014  0.4241087  -1.752 0.079947 .  
+# EDUCGED                      -0.7391579  0.4264384  -1.733 0.083156 .  
+# EDUCsome college             -0.6926901  0.4241849  -1.633 0.102592    
+# EDUCassoc deg in tech or occ -0.7222745  0.4257772  -1.696 0.089936 .  
+# EDUCassoc deg academic       -0.6567569  0.4244091  -1.547 0.121874    
+# EDUCbachelors                -0.6725031  0.4241931  -1.585 0.113004    
+# EDUCmasters                  -0.6654848  0.4244723  -1.568 0.117051    
+# EDUCprofessional degree      -0.7624585  0.4301493  -1.773 0.076422 .  
+#  EDUCdoctoral                 -0.6837968  0.4271878  -1.601 0.109567    
+# EDUCrefused                  -0.6386945  0.4892973  -1.305 0.191896    
+# EDUCdont know                -0.7117713  0.4893855  -1.454 0.145951    
+# ---
+#  Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+# Residual standard error: 0.4237 on 2596 degrees of freedom
+# (6 observations deleted due to missingness)
+# Multiple R-squared:  0.1282,	Adjusted R-squared:  0.1195 
+# F-statistic: 14.69 on 26 and 2596 DF,  p-value: < 2.2e-16
+exp(SVMBERHI$coefficients)
+plot(coef(SVMBERHI))
+par(mfrow=c(2,2))
+plot(SVMBERHI,col="Brown",pch=16,cex=1,lwd=1,lty=2)
+
+
+new_data_to_be_predicted <- data.frame(AGE = AGE>=25 & AGE<=60),  
+                                      FAMSIZE = mean(FAMSIZE), 
+                                      RACEA = factor(("Black"),levels = levels(dat_use1$RACEA)),
+                                      CITIZEN = factor(("yes US citizen"),levels = levels(dat_use1$CITIZEN)),
+                                      EEDUC = factor(("HS diploma"),levels = levels(dat_use1$EEDUC))
+summary(new_data_to_be_predicted)
+new_data_to_be_predicted$yhat<-predict(TESTknow1, new_data_to_be_predicted)
+summary(new_data_to_be_predicted$yhat)
+plot(new_data_to_be_predicted$yhat)
+#  Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# -0.38   -0.38   -0.38   -0.38   -0.38   -0.38   
+
+SVMBERHI <-lm(WORKHI~ FAMSIZE + RACEA + CITIZEN + EDUC, data = dat_use1)
+
+new_data_to_be_predicted <-data.frame(RACEA = factor(("Black"),levels = levels(dat_use1$RACEA)),
+                                      CITIZEN = factor(("yes US citizen"),levels = levels(dat_use1$CITIZEN)),
+                                      FAMSIZE = mean(dat_use1$FAMSIZE, na.rm = TRUE, 
+                                      EEDUC=factor(("HS diploma")), levels = levels(dat_use1$EEDUC))
+                                      
+OLS2TESTknow2 <- lm(WORKHI~ FAMSIZE + RACEA + CITIZEN + EDUC, data = dat_use1)
+                                      summary(OLS2TESTknow2)
+                                      exp(OLS2TESTknow2$coefficients)
+                                      plot(coef(OLS2TESTknow2))
+                                      par(mfrow=c(2,2))
+                                      plot(OLS2TESTknow2,col="Red",pch=16,cex=1,lwd=1,lty=2)
+                                      
+summary(new_data_to_be_predicted)
+new_data_to_be_predicted$yhat<-predict(SVMBERHI, new_data_to_be_predicted)
+summary(new_data_to_be_predicted$yhat)
+plot(new_data_to_be_predicted$yhat)
+#OLS OUTPUT     0.4437  0.4437  0.4437  0.4437  0.4437  0.4437 
+
+
+#####HOMEWORK2 #####
+#a. What is the predicted probability that a 30-year-old person (not a female) will have a job with benefits?
+#log(1-p)=-0.019*30+(0.00002 *30^2)+(-0.470 )*0+0.0082*0+ (-0.00001*0)-1.84=0.7838
+#p=0.7838
+#b. What is the predicted probability that a 30-year-old female person will have a job with benefits?
+#log(1-p)= -0.019*30+(0.00002 *30^2)+(-0.470 )*1+0.0082*1+ (-0.00001*30^2)*1-1.82=
+#p=0.7417
+#c. Describe and explain the impact of the squared age terms in the model, for male and female.
+#p=0.500003
+#Rate change of log odds w.r.t the change  in age of the person is about 2*(-0.00001)
+#the probability is a lit bit more female. As females more likely to get some job.
+
+
+
